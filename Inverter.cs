@@ -21,7 +21,6 @@ namespace SmartInverterSimulator
         private decimal _fullBatteryWh;
         private decimal _batteryChargeEnergyWh;
         private decimal _solarGeneratedWh;
-        private string _powerSource;
 
         public Inverter()
         {
@@ -77,7 +76,7 @@ namespace SmartInverterSimulator
             await updateBatteryStatus(_rawData.ConsumptionWh);
 
             _rawData.SolarGeneratedWh = _solarGeneratedWh;
-            _rawData.PowerSource = _powerSource;
+            _rawData.PowerSource = Config.Instance().PowerSource;
             _rawData.BatteryPerc = Math.Round((_batteryStatusWh / _fullBatteryWh * 100), 0);
         }
 
@@ -134,84 +133,96 @@ namespace SmartInverterSimulator
         //Assumption 2: All solar power generated can be consumed by the battery
         private async Task updateBatteryStatus(decimal consumptionWh)
         {
-            if (Config.Instance().NextGridCutOffTime < DateTime.Now)
+            if (gridCutOffTimeReached())
             {
-                _powerSource = "B";
-
                 while (Config.Instance().NextGridCutOffTime < DateTime.Now)
                 {
                     Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddDays(1);
                 }
-
                 await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+
+                Config.Instance().PowerSource = "B";
             }
 
-            if (_solarGeneratedWh > 0)
+            if (isSolarPowerGenerated())
             {
-                //Battery status is more than minimum battery 
+                await updateBatteryWhenSolar(consumptionWh);
+            }
+            else
+            {
+                await updateBatteryWhenNoSolar(consumptionWh);
+            }
+        }
+
+        private async Task updateBatteryWhenSolar(decimal consumptionWh)
+        {
+            if (sufficientBattery())
+            {
+                _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
+                Config.Instance().PowerSource = "B+S";
+                _isMinimumBatteryReached = false;
+            }
+            else if (batteryFull())
+            {
+                if (_solarGeneratedWh >= consumptionWh)
+                    _solarGeneratedWh = consumptionWh;
+                else
+                    _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
+
+                _isMinimumBatteryReached = false;
+                Config.Instance().PowerSource = "S";
+                Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(-1);
+                await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+            }
+            else if (lowBattery())
+            {
+                _batteryStatusWh += _batteryChargeEnergyWh;
+                Config.Instance().PowerSource = "G+S";
+
+                if (_solarGeneratedWh >= consumptionWh)
+                    _solarGeneratedWh = consumptionWh;
+
+                _isMinimumBatteryReached = true;
+                Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
+                await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+            }
+        }
+
+        private async Task updateBatteryWhenNoSolar(decimal consumptionWh)
+        {
+            if (isPowerSourceBattery())
+            {
                 if (_batteryStatusWh > _minimumBatteryWh && (!_isMinimumBatteryReached || _batteryStatusWh > _sufficientBatteryWh))
                 {
-                    _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
-                    _powerSource = "B+S";
+                    _batteryStatusWh -= consumptionWh;
                     _isMinimumBatteryReached = false;
-                }
-                else if (_batteryStatusWh >= _fullBatteryWh)
-                {
-                    if (_solarGeneratedWh >= consumptionWh)
-                    {
-                        _solarGeneratedWh = consumptionWh;
-                    }
-                    else
-                    {
-                        _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
-                    }
-                    _isMinimumBatteryReached = false;
-
-                    _powerSource = "S";
-
-                    Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(-1);
-                    await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
                 }
                 else if (_batteryStatusWh < _minimumBatteryWh || _isMinimumBatteryReached)
                 {
                     _batteryStatusWh += _batteryChargeEnergyWh;
-                    _powerSource = "G+S";
-
-                    if (_solarGeneratedWh >= consumptionWh)
-                    {
-                        _solarGeneratedWh = consumptionWh;
-                    }
-
+                    Config.Instance().PowerSource = "G";
                     _isMinimumBatteryReached = true;
                     Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
                     await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
                 }
-
             }
-            else
+            else if (!batteryFull())
             {
-                if (_powerSource == "B")
-                {
-                    if (_batteryStatusWh > _minimumBatteryWh && (!_isMinimumBatteryReached || _batteryStatusWh > _sufficientBatteryWh))
-                    {
-                        _batteryStatusWh -= consumptionWh;
-                        _isMinimumBatteryReached = false;
-                    }
-                    else if (_batteryStatusWh < _minimumBatteryWh || _isMinimumBatteryReached)
-                    {
-                        _batteryStatusWh += _batteryChargeEnergyWh;
-                        _powerSource = "G";
-                        _isMinimumBatteryReached = true;
-                        Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
-                        await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
-                    }
-                }
-                else if (_batteryStatusWh < _fullBatteryWh)
-                {
-                    _batteryStatusWh += Config.Instance().BatteryMaximumChargeWatt * (Config.Instance().TimeGapSec / 3600M);
-                    _powerSource = "G";
-                }
+                _batteryStatusWh += Config.Instance().BatteryMaximumChargeWatt * (Config.Instance().TimeGapSec / 3600M);
+                Config.Instance().PowerSource = "G";
             }
         }
+
+        private bool batteryFull() { return _batteryStatusWh >= _fullBatteryWh; }
+
+        private bool isSolarPowerGenerated() { return _solarGeneratedWh > 0; }
+
+        private bool isPowerSourceBattery() { return Config.Instance().PowerSource.Equals("B"); }
+
+        private bool sufficientBattery() { return (_batteryStatusWh > _minimumBatteryWh && (!_isMinimumBatteryReached || _batteryStatusWh > _sufficientBatteryWh)); }
+
+        private bool lowBattery() { return (_batteryStatusWh < _minimumBatteryWh || _isMinimumBatteryReached); }
+
+        private bool gridCutOffTimeReached() { return Config.Instance().NextGridCutOffTime < DateTime.Now; }
     }
 }

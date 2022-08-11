@@ -43,6 +43,8 @@ namespace SmartInverterSimulator
 
         public DateTime NextGridCutOffTime { get; set; }
 
+        public string PowerSource { get; set; }
+
         public DateTime LoggedAt { get; set; }
     }
 }

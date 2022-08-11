@@ -11,18 +11,20 @@ namespace SmartInverterSimulator
         {
             try
             {
-                var result = await ServerUpload.GetUserDataAndConfig(customerID: 610);
+                var userData = await ServerUpload.GetUserDataAndConfig(customerID: 610);
                 Config.Instance().CustomerID = 610;
-                Config.Instance().SolarPanelCapacityWatts = result.SolarPanelCapacityWatts;
-                Config.Instance().BatteryCapacitykWh = result.BatteryCapacitykWh;
-                Config.Instance().MinimumBatteryPerc = result.MinimumBatteryPerc;
-                Config.Instance().NextGridCutOffTime = result.NextGridCutOffTime;
+                Config.Instance().SolarPanelCapacityWatts = userData.SolarPanelCapacityWatts;
+                Config.Instance().BatteryCapacitykWh = userData.BatteryCapacitykWh;
+                Config.Instance().MinimumBatteryPerc = userData.MinimumBatteryPerc;
+                Config.Instance().NextGridCutOffTime = userData.NextGridCutOffTime;
                 Config.Instance().MaximumLoadWatt = 320;
                 Config.Instance().TimeGapSec = 2;
                 Config.Instance().TimeGapWhenQueueFullSec = 10;
                 Config.Instance().RoundUpto = 2;
                 Config.Instance().BatteryMaximumChargeWatt = 120;
-                Config.Instance().InitialBatteryPerc = await ServerUpload.GetBatteryStatus(customerID: 610);
+                var dashboardData = await ServerUpload.GetDashboardData(customerID: 610);
+                Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
+                Config.Instance().PowerSource = dashboardData.PowerSource;
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
                 Task taskserverUpload = new ServerUpload().ProcessQueue();

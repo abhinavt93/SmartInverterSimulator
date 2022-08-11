@@ -89,17 +89,16 @@ namespace SmartInverterSimulator
             return null;
         }
 
-        public static async Task<Decimal> GetBatteryStatus(int customerID)
+        public static async Task<DashboardData> GetDashboardData(int customerID)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("https://localhost:5001/RawDataAPI/GetDashboardData");
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsAsync<DashboardData>();
-                return result.BatteryPerc;
+                return await response.Content.ReadAsAsync<DashboardData>();
             }
 
-            return 100;
+            return null;
         }
 
         public static async Task UpdateNextGridCutOffTimeDB(Config config)
