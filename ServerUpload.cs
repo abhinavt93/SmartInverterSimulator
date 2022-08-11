@@ -30,7 +30,7 @@ namespace SmartInverterSimulator
                 }
                 else
                 {
-                    await Task.Delay(Config.TimeGapSec);
+                    await Task.Delay(Config.Instance().TimeGapSec);
                 }
                 
             }
@@ -53,6 +53,7 @@ namespace SmartInverterSimulator
                     Console.WriteLine($"rawData.LoadWatts: {rawData.LoadWatts}");
                     Console.WriteLine($"rawData.SessionConsumptionWatts : {rawData.ConsumptionWh}");
                     Console.WriteLine($"rawData.TimeIntervalSec : {rawData.TimeIntervalSec}");
+                    Console.WriteLine($"rawData.PowerSource : {rawData.PowerSource}");
 
                     await pushToServer(rawData);
                     retry = false;
@@ -76,5 +77,36 @@ namespace SmartInverterSimulator
             response.EnsureSuccessStatusCode();
         }
 
+        public static async Task<Config> GetUserDataAndConfig(int customerID)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync("https://localhost:5001/RawDataAPI/GetUserDataAndConfig?customerID=" + customerID);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsAsync<Config>();
+            }
+
+            return null;
+        }
+
+        public static async Task<Decimal> GetBatteryStatus(int customerID)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync("https://localhost:5001/RawDataAPI/GetDashboardData");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsAsync<DashboardData>();
+                return result.BatteryPerc;
+            }
+
+            return 100;
+        }
+
+        public static async Task UpdateNextGridCutOffTimeDB(Config config)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateNextGridCutOffTime", config);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

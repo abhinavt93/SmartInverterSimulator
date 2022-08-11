@@ -7,19 +7,32 @@ namespace SmartInverterSimulator
     class Program
     {
         
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Config.MaximumSolarPanelCapacityWatt = 320;
-            Config.MaximumLoadWatt = 320;
-            Config.TimeGapSec = 2;
-            Config.TimeGapWhenQueueFullSec = 10;
-            Config.RoundUpto = 2;
+            try
+            {
+                var result = await ServerUpload.GetUserDataAndConfig(customerID: 610);
+                Config.Instance().CustomerID = 610;
+                Config.Instance().SolarPanelCapacityWatts = result.SolarPanelCapacityWatts;
+                Config.Instance().BatteryCapacitykWh = result.BatteryCapacitykWh;
+                Config.Instance().MinimumBatteryPerc = result.MinimumBatteryPerc;
+                Config.Instance().NextGridCutOffTime = result.NextGridCutOffTime;
+                Config.Instance().MaximumLoadWatt = 320;
+                Config.Instance().TimeGapSec = 2;
+                Config.Instance().TimeGapWhenQueueFullSec = 10;
+                Config.Instance().RoundUpto = 2;
+                Config.Instance().BatteryMaximumChargeWatt = 120;
+                Config.Instance().InitialBatteryPerc = await ServerUpload.GetBatteryStatus(customerID: 610);
 
-            //ServerUpload serverUpload = new ServerUpload();
-            Task taskInverter = new Inverter().InitiateSimulatorAsync();
-            Task taskserverUpload = new ServerUpload().ProcessQueue();
-            //Console.WriteLine($"Current hour: {DateTime.Now.Hour}");
-            Task.WaitAll(taskInverter, taskserverUpload);
+                Task taskInverter = new Inverter().InitiateSimulatorAsync();
+                Task taskserverUpload = new ServerUpload().ProcessQueue();
+
+                Task.WaitAll(taskInverter, taskserverUpload);
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
         }
         
     }
