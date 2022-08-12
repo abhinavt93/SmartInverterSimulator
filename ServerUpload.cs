@@ -107,5 +107,12 @@ namespace SmartInverterSimulator
             HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateNextGridCutOffTime", config);
             response.EnsureSuccessStatusCode();
         }
+
+        public static async Task UpdateIsFirstRunDB(Config config)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateIsFirstRun", config);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

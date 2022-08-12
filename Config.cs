@@ -45,6 +45,8 @@ namespace SmartInverterSimulator
 
         public string PowerSource { get; set; }
 
+        public string IsFirstRun { get; set; }
+
         public DateTime LoggedAt { get; set; }
     }
 }

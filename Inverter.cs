@@ -36,7 +36,8 @@ namespace SmartInverterSimulator
 
             if (_isDataGenerationMode)
             {
-                _currentTime = new DateTime(year: 2022, month: 1, day: 1);
+                //2022-08-12 00:02:26.9866667
+                _currentTime = new DateTime(year: 2022, month: 8, day: 11, hour: 00, minute: 00, second: 28);
                 _gapBetweenTwoReadingsSec = 0;
             }
 
@@ -135,7 +136,7 @@ namespace SmartInverterSimulator
         {
             if (gridCutOffTimeReached())
             {
-                while (Config.Instance().NextGridCutOffTime < DateTime.Now)
+                while (Config.Instance().NextGridCutOffTime < _currentTime)
                 {
                     Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddDays(1);
                 }
@@ -223,6 +224,6 @@ namespace SmartInverterSimulator
 
         private bool lowBattery() { return (_batteryStatusWh < _minimumBatteryWh || _isMinimumBatteryReached); }
 
-        private bool gridCutOffTimeReached() { return Config.Instance().NextGridCutOffTime < DateTime.Now; }
+        private bool gridCutOffTimeReached() { return Config.Instance().NextGridCutOffTime < _currentTime; }
     }
 }

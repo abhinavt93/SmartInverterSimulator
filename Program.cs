@@ -11,8 +11,23 @@ namespace SmartInverterSimulator
         {
             try
             {
-                var userData = await ServerUpload.GetUserDataAndConfig(customerID: 610);
                 Config.Instance().CustomerID = 610;
+                var userData = await ServerUpload.GetUserDataAndConfig(Config.Instance().CustomerID);
+                if (userData.IsFirstRun == "Y")
+                {
+                    Config.Instance().InitialBatteryPerc = 100;
+                    Config.Instance().PowerSource = "G";
+                    Config.Instance().IsFirstRun = "N";
+                    await ServerUpload.UpdateIsFirstRunDB(Config.Instance());
+                    
+                }
+                else
+                {
+                    var dashboardData = await ServerUpload.GetDashboardData(Config.Instance().CustomerID);
+                    Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
+                    Config.Instance().PowerSource = dashboardData.PowerSource;
+                }
+                
                 Config.Instance().SolarPanelCapacityWatts = userData.SolarPanelCapacityWatts;
                 Config.Instance().BatteryCapacitykWh = userData.BatteryCapacitykWh;
                 Config.Instance().MinimumBatteryPerc = userData.MinimumBatteryPerc;
@@ -22,9 +37,7 @@ namespace SmartInverterSimulator
                 Config.Instance().TimeGapWhenQueueFullSec = 10;
                 Config.Instance().RoundUpto = 2;
                 Config.Instance().BatteryMaximumChargeWatt = 120;
-                var dashboardData = await ServerUpload.GetDashboardData(customerID: 610);
-                Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
-                Config.Instance().PowerSource = dashboardData.PowerSource;
+                
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
                 Task taskserverUpload = new ServerUpload().ProcessQueue();
