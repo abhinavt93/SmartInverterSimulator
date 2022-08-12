@@ -27,12 +27,13 @@ namespace SmartInverterSimulator
                     Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
                     Config.Instance().PowerSource = dashboardData.PowerSource;
                 }
-                
+
+                Config.Instance().IsNextGridCutOffTimeUpdated = userData.IsNextGridCutOffTimeUpdated;
                 Config.Instance().SolarPanelCapacityWatts = userData.SolarPanelCapacityWatts;
                 Config.Instance().BatteryCapacitykWh = userData.BatteryCapacitykWh;
                 Config.Instance().MinimumBatteryPerc = userData.MinimumBatteryPerc;
                 Config.Instance().NextGridCutOffTime = userData.NextGridCutOffTime;
-                Config.Instance().MaximumLoadWatt = 320;
+                Config.Instance().MaximumLoadWatt = 500;
                 Config.Instance().TimeGapSec = 2;
                 Config.Instance().TimeGapWhenQueueFullSec = 10;
                 Config.Instance().RoundUpto = 2;

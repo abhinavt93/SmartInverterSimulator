@@ -47,6 +47,8 @@ namespace SmartInverterSimulator
 
         public string IsFirstRun { get; set; }
 
+        public string IsNextGridCutOffTimeUpdated { get; set; }
+
         public DateTime LoggedAt { get; set; }
     }
 }

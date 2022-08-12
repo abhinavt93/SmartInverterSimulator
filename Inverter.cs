@@ -21,6 +21,7 @@ namespace SmartInverterSimulator
         private decimal _fullBatteryWh;
         private decimal _batteryChargeEnergyWh;
         private decimal _solarGeneratedWh;
+        private decimal _solarOutputWatts;
 
         public Inverter()
         {
@@ -36,7 +37,6 @@ namespace SmartInverterSimulator
 
             if (_isDataGenerationMode)
             {
-                //2022-08-12 00:02:26.9866667
                 _currentTime = new DateTime(year: 2022, month: 8, day: 11, hour: 00, minute: 00, second: 28);
                 _gapBetweenTwoReadingsSec = 0;
             }
@@ -66,16 +66,17 @@ namespace SmartInverterSimulator
 
             _rawData.LoggedAt = _currentTime;
             _rawData.BatteryPerc = 50;
-            _rawData.SolarOutputWatts = getCurrentSolarOutput(_rawData.LoggedAt.Hour).Round(Config.Instance().RoundUpto);
-
-            _solarGeneratedWh = calculateConsumptionOrGeneration(_rawData.SolarOutputWatts);
-
+             
+            _solarOutputWatts = getCurrentSolarOutput(_rawData.LoggedAt.Hour).Round(Config.Instance().RoundUpto);
+            _solarGeneratedWh = calculateConsumptionOrGeneration(_solarOutputWatts);
+            
             _rawData.LoadWatts = getCurrentLoad(_rawData.LoggedAt.Hour).Round(Config.Instance().RoundUpto);
             _rawData.ConsumptionWh = calculateConsumptionOrGeneration(_rawData.LoadWatts);
             _rawData.TimeIntervalSec = Config.Instance().TimeGapSec;
-            _rawData.CustomerID = 610;
-            await updateBatteryStatus(_rawData.ConsumptionWh);
+            _rawData.CustomerID = Config.Instance().CustomerID;
+            await updateBatteryStatus(_rawData.ConsumptionWh, _rawData.LoadWatts);
 
+            _rawData.SolarOutputWatts = _solarOutputWatts;
             _rawData.SolarGeneratedWh = _solarGeneratedWh;
             _rawData.PowerSource = Config.Instance().PowerSource;
             _rawData.BatteryPerc = Math.Round((_batteryStatusWh / _fullBatteryWh * 100), 0);
@@ -132,7 +133,7 @@ namespace SmartInverterSimulator
 
         //Assumption 1: Grid power always stays ON
         //Assumption 2: All solar power generated can be consumed by the battery
-        private async Task updateBatteryStatus(decimal consumptionWh)
+        private async Task updateBatteryStatus(decimal consumptionWh, decimal loadWatts)
         {
             if (gridCutOffTimeReached())
             {
@@ -140,6 +141,7 @@ namespace SmartInverterSimulator
                 {
                     Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddDays(1);
                 }
+                Config.Instance().IsNextGridCutOffTimeUpdated = "N";
                 await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
 
                 Config.Instance().PowerSource = "B";
@@ -147,7 +149,7 @@ namespace SmartInverterSimulator
 
             if (isSolarPowerGenerated())
             {
-                await updateBatteryWhenSolar(consumptionWh);
+                await updateBatteryWhenSolar(consumptionWh, loadWatts);
             }
             else
             {
@@ -155,25 +157,36 @@ namespace SmartInverterSimulator
             }
         }
 
-        private async Task updateBatteryWhenSolar(decimal consumptionWh)
+        private async Task updateBatteryWhenSolar(decimal consumptionWh, decimal loadWatts)
         {
-            if (sufficientBattery())
+            if (batteryFull())
+            {
+                if (_solarGeneratedWh >= consumptionWh)
+                {
+                    _solarGeneratedWh = consumptionWh;
+                    _solarOutputWatts = loadWatts;
+                    Config.Instance().PowerSource = "S";
+                }
+                else
+                {
+                    _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
+                    Config.Instance().PowerSource = "B+S";
+                }
+
+                _isMinimumBatteryReached = false;
+                if (Config.Instance().IsNextGridCutOffTimeUpdated.Equals("N"))
+                {
+                    Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(-1);
+                    Config.Instance().IsNextGridCutOffTimeUpdated = "Y";
+                    await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+                }
+                
+            }
+            else if (sufficientBattery())
             {
                 _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
                 Config.Instance().PowerSource = "B+S";
                 _isMinimumBatteryReached = false;
-            }
-            else if (batteryFull())
-            {
-                if (_solarGeneratedWh >= consumptionWh)
-                    _solarGeneratedWh = consumptionWh;
-                else
-                    _batteryStatusWh -= consumptionWh - _solarGeneratedWh;
-
-                _isMinimumBatteryReached = false;
-                Config.Instance().PowerSource = "S";
-                Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(-1);
-                await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
             }
             else if (lowBattery())
             {
@@ -181,11 +194,19 @@ namespace SmartInverterSimulator
                 Config.Instance().PowerSource = "G+S";
 
                 if (_solarGeneratedWh >= consumptionWh)
+                {
                     _solarGeneratedWh = consumptionWh;
+                    _solarOutputWatts = loadWatts;
+                }
 
                 _isMinimumBatteryReached = true;
-                Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
-                await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+
+                if (Config.Instance().IsNextGridCutOffTimeUpdated.Equals("N"))
+                {
+                    Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
+                    Config.Instance().IsNextGridCutOffTimeUpdated = "Y";
+                    await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+                }
             }
         }
 
@@ -193,18 +214,23 @@ namespace SmartInverterSimulator
         {
             if (isPowerSourceBattery())
             {
-                if (_batteryStatusWh > _minimumBatteryWh && (!_isMinimumBatteryReached || _batteryStatusWh > _sufficientBatteryWh))
+                if (sufficientBattery())
                 {
                     _batteryStatusWh -= consumptionWh;
                     _isMinimumBatteryReached = false;
                 }
-                else if (_batteryStatusWh < _minimumBatteryWh || _isMinimumBatteryReached)
+                else if (lowBattery())
                 {
                     _batteryStatusWh += _batteryChargeEnergyWh;
                     Config.Instance().PowerSource = "G";
                     _isMinimumBatteryReached = true;
-                    Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
-                    await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+
+                    if (Config.Instance().IsNextGridCutOffTimeUpdated.Equals("N"))
+                    {
+                        Config.Instance().NextGridCutOffTime = Config.Instance().NextGridCutOffTime.AddHours(1);
+                        Config.Instance().IsNextGridCutOffTimeUpdated = "Y";
+                        await ServerUpload.UpdateNextGridCutOffTimeDB(Config.Instance());
+                    }
                 }
             }
             else if (!batteryFull())
