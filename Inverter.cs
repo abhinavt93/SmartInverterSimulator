@@ -31,7 +31,7 @@ namespace SmartInverterSimulator
             _batteryStatusWh = Config.Instance().InitialBatteryPerc * Config.Instance().BatteryCapacitykWh * 10;
 
             _minimumBatteryWh = Config.Instance().MinimumBatteryPerc * Config.Instance().BatteryCapacitykWh * 10;
-            _sufficientBatteryWh = _minimumBatteryWh * 1.1M;
+            _sufficientBatteryWh = _minimumBatteryWh * 3M;
             _fullBatteryWh = Config.Instance().BatteryCapacitykWh * 1000;
             _batteryChargeEnergyWh = Config.Instance().BatteryMaximumChargeWatt * (Config.Instance().TimeGapSec / 3600M);
 
