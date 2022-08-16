@@ -11,7 +11,6 @@ namespace SmartInverterSimulator
         private RawDataDto _rawData;
         private Random _random;
         private DateTime _currentTime;
-        private bool _isDataGenerationMode = false;
         private int _gapBetweenTwoReadingsSec;
         private decimal _batteryStatusWh;
         private bool _isMinimumBatteryReached = false;
@@ -35,9 +34,9 @@ namespace SmartInverterSimulator
             _fullBatteryWh = Config.Instance().BatteryCapacitykWh * 1000;
             _batteryChargeEnergyWh = Config.Instance().BatteryMaximumChargeWatt * (Config.Instance().TimeGapSec / 3600M);
 
-            if (_isDataGenerationMode)
+            if (Config.Instance().IsDataGenerationMode)
             {
-                _currentTime = new DateTime(year: 2022, month: 8, day: 11, hour: 00, minute: 00, second: 28);
+                _currentTime = Config.Instance().DataGenerationStartDateTime;
                 _gapBetweenTwoReadingsSec = 0;
             }
 
@@ -121,7 +120,7 @@ namespace SmartInverterSimulator
 
         private void refreshCurrentTime()
         {
-            if (_isDataGenerationMode)
+            if (Config.Instance().IsDataGenerationMode)
             {
                 _currentTime = _currentTime.AddSeconds(Config.Instance().TimeGapSec);
             }

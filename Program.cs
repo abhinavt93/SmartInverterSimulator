@@ -38,7 +38,8 @@ namespace SmartInverterSimulator
                 Config.Instance().TimeGapWhenQueueFullSec = 10;
                 Config.Instance().RoundUpto = 2;
                 Config.Instance().BatteryMaximumChargeWatt = 120;
-                
+                Config.Instance().IsDataGenerationMode = true;
+                Config.Instance().DataGenerationStartDateTime = userData.LoggedAt.AddMinutes(5);
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
                 Task taskserverUpload = new ServerUpload().ProcessQueue();

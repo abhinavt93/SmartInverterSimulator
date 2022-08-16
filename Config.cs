@@ -23,11 +23,11 @@ namespace SmartInverterSimulator
 
         public int CustomerID { get; set; }
 
-        public Decimal MinimumBatteryPerc { get; set; }
+        public decimal MinimumBatteryPerc { get; set; }
 
-        public Decimal BatteryCapacitykWh { get; set; }
+        public decimal BatteryCapacitykWh { get; set; }
 
-        public Decimal SolarPanelCapacityWatts { get; set; }
+        public decimal SolarPanelCapacityWatts { get; set; }
 
         public int MaximumLoadWatt { get; set; }
 
@@ -37,9 +37,9 @@ namespace SmartInverterSimulator
 
         public int RoundUpto { get; set; }
 
-        public Decimal InitialBatteryPerc { get; set; }
+        public decimal InitialBatteryPerc { get; set; }
 
-        public Decimal BatteryMaximumChargeWatt { get; set; }
+        public decimal BatteryMaximumChargeWatt { get; set; }
 
         public DateTime NextGridCutOffTime { get; set; }
 
@@ -48,6 +48,10 @@ namespace SmartInverterSimulator
         public string IsFirstRun { get; set; }
 
         public string IsNextGridCutOffTimeUpdated { get; set; }
+
+        public bool IsDataGenerationMode { get; set; }
+
+        public DateTime DataGenerationStartDateTime { get; set; }
 
         public DateTime LoggedAt { get; set; }
     }

@@ -5294,7 +5294,7 @@
       "outputPath": "/Users/abhinavtiwari/Projects/SmartInverterSimulator/SmartInverterSimulator/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/abhinavtiwari/.config/NuGet/NuGet.Config"
+        "/Users/abhinavtiwari/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netcoreapp3.1"
