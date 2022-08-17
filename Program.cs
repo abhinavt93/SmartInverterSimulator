@@ -11,18 +11,35 @@ namespace SmartInverterSimulator
         {
             try
             {
-                var result = await ServerUpload.GetUserDataAndConfig(customerID: 610);
                 Config.Instance().CustomerID = 610;
-                Config.Instance().SolarPanelCapacityWatts = result.SolarPanelCapacityWatts;
-                Config.Instance().BatteryCapacitykWh = result.BatteryCapacitykWh;
-                Config.Instance().MinimumBatteryPerc = result.MinimumBatteryPerc;
-                Config.Instance().NextGridCutOffTime = result.NextGridCutOffTime;
-                Config.Instance().MaximumLoadWatt = 320;
+                var userData = await ServerUpload.GetUserDataAndConfig(Config.Instance().CustomerID);
+                var dashboardData = await ServerUpload.GetDashboardData(Config.Instance().CustomerID);
+                if (userData.IsFirstRun == "Y")
+                {
+                    Config.Instance().InitialBatteryPerc = 100;
+                    Config.Instance().PowerSource = "G";
+                    Config.Instance().IsFirstRun = "N";
+                    await ServerUpload.UpdateIsFirstRunDB(Config.Instance());
+                    
+                }
+                else
+                {
+                    Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
+                    Config.Instance().PowerSource = dashboardData.PowerSource;
+                }
+
+                Config.Instance().IsNextGridCutOffTimeUpdated = userData.IsNextGridCutOffTimeUpdated;
+                Config.Instance().SolarPanelCapacityWatts = userData.SolarPanelCapacityWatts;
+                Config.Instance().BatteryCapacitykWh = userData.BatteryCapacitykWh;
+                Config.Instance().MinimumBatteryPerc = userData.MinimumBatteryPerc;
+                Config.Instance().NextGridCutOffTime = userData.NextGridCutOffTime;
+                Config.Instance().MaximumLoadWatt = 500;
                 Config.Instance().TimeGapSec = 2;
                 Config.Instance().TimeGapWhenQueueFullSec = 10;
                 Config.Instance().RoundUpto = 2;
                 Config.Instance().BatteryMaximumChargeWatt = 120;
-                Config.Instance().InitialBatteryPerc = await ServerUpload.GetBatteryStatus(customerID: 610);
+                Config.Instance().IsDataGenerationMode = true;
+                Config.Instance().DataGenerationStartDateTime = dashboardData.LoggedAt.AddMinutes(5);
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
                 Task taskserverUpload = new ServerUpload().ProcessQueue();
