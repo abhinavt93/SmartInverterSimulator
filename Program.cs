@@ -13,6 +13,7 @@ namespace SmartInverterSimulator
             {
                 Config.Instance().CustomerID = 610;
                 var userData = await ServerUpload.GetUserDataAndConfig(Config.Instance().CustomerID);
+                var dashboardData = await ServerUpload.GetDashboardData(Config.Instance().CustomerID);
                 if (userData.IsFirstRun == "Y")
                 {
                     Config.Instance().InitialBatteryPerc = 100;
@@ -23,7 +24,6 @@ namespace SmartInverterSimulator
                 }
                 else
                 {
-                    var dashboardData = await ServerUpload.GetDashboardData(Config.Instance().CustomerID);
                     Config.Instance().InitialBatteryPerc = dashboardData.BatteryPerc;
                     Config.Instance().PowerSource = dashboardData.PowerSource;
                 }
@@ -39,7 +39,7 @@ namespace SmartInverterSimulator
                 Config.Instance().RoundUpto = 2;
                 Config.Instance().BatteryMaximumChargeWatt = 120;
                 Config.Instance().IsDataGenerationMode = true;
-                Config.Instance().DataGenerationStartDateTime = userData.LoggedAt.AddMinutes(5);
+                Config.Instance().DataGenerationStartDateTime = dashboardData.LoggedAt.AddMinutes(5);
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
                 Task taskserverUpload = new ServerUpload().ProcessQueue();
