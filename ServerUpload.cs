@@ -20,13 +20,13 @@ namespace SmartInverterSimulator
             
         }
 
-        public async Task ProcessQueue()
+        public async Task ProcessQueueAsync()
         {
             while (true)
             {
                 if (ConcurrentStack.TryPop(out RawDataDto rawData))
                 {
-                    await printToConsole(rawData);    
+                    await printToConsoleAsync(rawData);    
                 }
                 else
                 {
@@ -36,7 +36,7 @@ namespace SmartInverterSimulator
             }
         }
 
-        private async Task printToConsole(RawDataDto rawData)
+        private async Task printToConsoleAsync(RawDataDto rawData)
         {
             bool retry;
             do
@@ -55,7 +55,7 @@ namespace SmartInverterSimulator
                     Console.WriteLine($"rawData.TimeIntervalSec : {rawData.TimeIntervalSec}");
                     Console.WriteLine($"rawData.PowerSource : {rawData.PowerSource}");
 
-                    await pushToServer(rawData);
+                    await pushToServerAsync(rawData);
                     retry = false;
                 }
                 catch (Exception ex)
@@ -70,14 +70,14 @@ namespace SmartInverterSimulator
 
         }
 
-        private async Task pushToServer(RawDataDto rawData)
+        private async Task pushToServerAsync(RawDataDto rawData)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/ProcessRawData", rawData);
             response.EnsureSuccessStatusCode();
         }
 
-        public static async Task<Config> GetUserDataAndConfig(int customerID)
+        public static async Task<Config> GetUserDataAndConfigAsync(int customerID)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("https://localhost:5001/RawDataAPI/GetUserDataAndConfig?customerID=" + customerID);
@@ -89,7 +89,7 @@ namespace SmartInverterSimulator
             return null;
         }
 
-        public static async Task<DashboardData> GetDashboardData(int customerID)
+        public static async Task<DashboardData> GetDashboardDataAsync(int customerID)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("https://localhost:5001/RawDataAPI/GetDashboardData");
@@ -101,14 +101,14 @@ namespace SmartInverterSimulator
             return null;
         }
 
-        public static async Task UpdateNextGridCutOffTimeDB(Config config)
+        public static async Task UpdateNextGridCutOffTimeDBAsync(Config config)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateNextGridCutOffTime", config);
             response.EnsureSuccessStatusCode();
         }
 
-        public static async Task UpdateIsFirstRunDB(Config config)
+        public static async Task UpdateIsFirstRunDBAsync(Config config)
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateIsFirstRun", config);
