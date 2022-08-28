@@ -6,7 +6,6 @@ namespace SmartInverterSimulator
 {
     class Program
     {
-        
         static async Task Main(string[] args)
         {
             try
@@ -14,6 +13,7 @@ namespace SmartInverterSimulator
                 Config.Instance().CustomerID = 610;
                 var userData = await ServerUpload.GetUserDataAndConfigAsync(Config.Instance().CustomerID);
                 var dashboardData = await ServerUpload.GetDashboardDataAsync(Config.Instance().CustomerID);
+
                 if (userData.IsFirstRun == "Y")
                 {
                     Config.Instance().InitialBatteryPerc = 100;
@@ -51,6 +51,5 @@ namespace SmartInverterSimulator
                 throw ex;
             }
         }
-        
     }
 }

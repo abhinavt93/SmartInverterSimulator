@@ -13,12 +13,6 @@ namespace SmartInverterSimulator
     {
         public static ConcurrentStack<RawDataDto> ConcurrentStack = new ConcurrentStack<RawDataDto>();
         private Random _random = new Random();
-        //public static Channel<RawDataDto> Channel;
-
-        public ServerUpload()
-        {
-            
-        }
 
         public async Task ProcessQueueAsync()
         {
@@ -26,55 +20,13 @@ namespace SmartInverterSimulator
             {
                 if (ConcurrentStack.TryPop(out RawDataDto rawData))
                 {
-                    await printToConsoleAsync(rawData);    
+                    await printConsolePushToServerAsync(rawData);    
                 }
                 else
                 {
                     await Task.Delay(Config.Instance().TimeGapSec);
                 }
-                
             }
-        }
-
-        private async Task printToConsoleAsync(RawDataDto rawData)
-        {
-            bool retry;
-            do
-            {
-                try
-                {
-                    Console.WriteLine();
-                    Console.WriteLine($"rawData.LoggedAt: {rawData.LoggedAt} ");
-                    Console.WriteLine($"rawData.CustomerID: {rawData.CustomerID} ");
-                    //Console.WriteLine($"Random: {20 / _random.Next(-1, 4)}");
-                    Console.WriteLine($"rawData.BatteryPerc: {rawData.BatteryPerc}");
-                    Console.WriteLine($"rawData.SolarOutputWatts: {rawData.SolarOutputWatts}");
-                    Console.WriteLine($"rawData.SessionSolarGeneratedWatts: {rawData.SolarGeneratedWh}");
-                    Console.WriteLine($"rawData.LoadWatts: {rawData.LoadWatts}");
-                    Console.WriteLine($"rawData.SessionConsumptionWatts : {rawData.ConsumptionWh}");
-                    Console.WriteLine($"rawData.TimeIntervalSec : {rawData.TimeIntervalSec}");
-                    Console.WriteLine($"rawData.PowerSource : {rawData.PowerSource}");
-
-                    await pushToServerAsync(rawData);
-                    retry = false;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($" Exception: {ex.Message}");
-                    retry = true;
-                    await Task.Delay(5000);
-                }
-
-            }
-            while (retry);
-
-        }
-
-        private async Task pushToServerAsync(RawDataDto rawData)
-        {
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/ProcessRawData", rawData);
-            response.EnsureSuccessStatusCode();
         }
 
         public static async Task<Config> GetUserDataAndConfigAsync(int customerID)
@@ -112,6 +64,47 @@ namespace SmartInverterSimulator
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/UpdateIsFirstRun", config);
+            response.EnsureSuccessStatusCode();
+        }
+
+        private async Task printConsolePushToServerAsync(RawDataDto rawData)
+        {
+            bool retry;
+            do
+            {
+                try
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"rawData.LoggedAt: {rawData.LoggedAt} ");
+                    Console.WriteLine($"rawData.CustomerID: {rawData.CustomerID} ");
+                    //Console.WriteLine($"Random: {20 / _random.Next(-1, 4)}");
+                    Console.WriteLine($"rawData.BatteryPerc: {rawData.BatteryPerc}");
+                    Console.WriteLine($"rawData.SolarOutputWatts: {rawData.SolarOutputWatts}");
+                    Console.WriteLine($"rawData.SessionSolarGeneratedWatts: {rawData.SolarGeneratedWh}");
+                    Console.WriteLine($"rawData.LoadWatts: {rawData.LoadWatts}");
+                    Console.WriteLine($"rawData.SessionConsumptionWatts : {rawData.ConsumptionWh}");
+                    Console.WriteLine($"rawData.TimeIntervalSec : {rawData.TimeIntervalSec}");
+                    Console.WriteLine($"rawData.PowerSource : {rawData.PowerSource}");
+
+                    await pushToServerAsync(rawData);
+                    retry = false;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($" Exception: {ex.Message}");
+                    retry = true;
+                    await Task.Delay(5000);
+                }
+
+            }
+            while (retry);
+
+        }
+
+        private async Task pushToServerAsync(RawDataDto rawData)
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:5001/RawDataAPI/ProcessRawData", rawData);
             response.EnsureSuccessStatusCode();
         }
     }
