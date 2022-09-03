@@ -6,20 +6,20 @@ namespace SmartInverterSimulator
 {
     class Program
     {
-        
         static async Task Main(string[] args)
         {
             try
             {
                 Config.Instance().CustomerID = 610;
-                var userData = await ServerUpload.GetUserDataAndConfig(Config.Instance().CustomerID);
-                var dashboardData = await ServerUpload.GetDashboardData(Config.Instance().CustomerID);
+                var userData = await ServerUpload.GetUserDataAndConfigAsync(Config.Instance().CustomerID);
+                var dashboardData = await ServerUpload.GetDashboardDataAsync(Config.Instance().CustomerID);
+
                 if (userData.IsFirstRun == "Y")
                 {
                     Config.Instance().InitialBatteryPerc = 100;
                     Config.Instance().PowerSource = "G";
                     Config.Instance().IsFirstRun = "N";
-                    await ServerUpload.UpdateIsFirstRunDB(Config.Instance());
+                    await ServerUpload.UpdateIsFirstRunDBAsync(Config.Instance());
                     
                 }
                 else
@@ -42,7 +42,7 @@ namespace SmartInverterSimulator
                 Config.Instance().DataGenerationStartDateTime = dashboardData.LoggedAt.AddMinutes(5);
 
                 Task taskInverter = new Inverter().InitiateSimulatorAsync();
-                Task taskserverUpload = new ServerUpload().ProcessQueue();
+                Task taskserverUpload = new ServerUpload().ProcessQueueAsync();
 
                 Task.WaitAll(taskInverter, taskserverUpload);
             }
@@ -51,6 +51,5 @@ namespace SmartInverterSimulator
                 throw ex;
             }
         }
-        
     }
 }
